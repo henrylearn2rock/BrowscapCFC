@@ -72,7 +72,7 @@ component
 		{
 			var regex = left(agentStringPatterns[i], 1) != "*" ? "^" : "";
 			
-			regex &= replaceList(agentStringPatterns[i], ".,*,?,(,),[,]", "\.,.*,.,\(,\),\[,\]");
+			regex &= replaceList(agentStringPatterns[i], ".,*,?,(,),[,],*+", "\.,.*,.,\(,\),\[,\],*\+");
 			
 			if (right(agentStringPatterns[i], 1) != "*")
 				regex &= "$";
