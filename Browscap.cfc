@@ -1,5 +1,5 @@
-﻿/** Detect browser capabilities from user agent string from CGI using `browscap.ini`.
-	Download latest `browscap.ini` at http://browsers.garykeith.com/
+/** Detect browser capabilities from user agent string from CGI using `browscap.ini` or `browscap.json` (faster init).
+	Download latest browscap files from the Browser Capabilities Project at http://browscap.org/.
  */
 component
 {
@@ -17,7 +17,7 @@ component
 	
 	
 	/**
-		@iniFilePath absolute path to `browscap.ini`
+		@iniFilePath absolute path to `browscap.ini` (default) or `browscap.json`
 	*/
 	function init(string iniFilePath="#expandPath('./browscap.ini')#")
 	{
@@ -36,8 +36,16 @@ component
 	private struct function iniToStruct(required string iniFilePath)
 	{
 		var data = {};
-		var file = fileOpen(iniFilePath);
-
+		var file = "";
+		
+		/** If iniFilePath is a json file, serialize it and return the data. */
+		if (listlast(iniFilePath, ".") is "json")
+		{
+			return deSerializeJson(fileRead(iniFilePath));
+		}
+ 		
+ 		file = fileOpen(iniFilePath);
+ 		
 		while (!fileIsEOF(file))
 		{
 			var line = FileReadLine(file);
@@ -113,15 +121,30 @@ component
 			
 		var matchedStringPattern = agentStringPatterns[matchedIndex];
 		var result = {};
+		var browserCapsValue = "";
+		var parentAgentValue = "";
 		
-		structAppend(result, browserCaps[matchedStringPattern]);
+		/** Place browserCaps[matchedStringPattern] into a variable so we can test for json. */
+		browserCapsValue = browserCaps[matchedStringPattern];
+		
+		/** If browserCapsValue is json, deserialize it. */
+		if (isJson(browserCapsValue)) browserCapsValue = deSerializeJson(browserCapsValue);
+		
+		structAppend(result, browserCapsValue);
 
 		// Fetch the rest of the info from parent(s)
 		while (structKeyExists(result, "parent"))
 		{
 			var parentAgent = result.parent;
 			structDelete(result, "parent");
-			structAppend(result, browserCaps[parentAgent], false);
+			
+			/** Place browserCaps[parentAgent] into a variable so we can test for json. */
+			parentAgentValue = browserCaps[parentAgent];
+			
+			/** If parentAgentValue is json, deserialize it. */
+			if (isJson(parentAgentValue)) parentAgentValue = deSerializeJson(parentAgentValue);
+			
+			structAppend(result, parentAgentValue, false);
 		}
 		
 		return result;
